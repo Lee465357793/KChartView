@@ -9,9 +9,9 @@ import android.support.v4.content.ContextCompat;
 
 import com.github.tifezh.kchartlib.R;
 import com.github.tifezh.kchartlib.chart.BaseKChartView;
-import com.github.tifezh.kchartlib.chart.entity.IVolume;
 import com.github.tifezh.kchartlib.chart.base.IChartDraw;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.IVolume;
 import com.github.tifezh.kchartlib.chart.formatter.BigValueFormatter;
 import com.github.tifezh.kchartlib.utils.ViewUtil;
 
@@ -60,8 +60,7 @@ public class VolumeDraw implements IChartDraw<IVolume> {
     }
 
     @Override
-    public void drawText(
-            @NonNull Canvas canvas, @NonNull BaseKChartView view, int position, float x, float y) {
+    public void drawText(@NonNull Canvas canvas, @NonNull BaseKChartView view, int position, float x, float y) {
         IVolume point = (IVolume) view.getItem(position);
         String text = "VOL:" + getValueFormatter().format(point.getVolume()) + " ";
         canvas.drawText(text, x, y, view.getTextPaint());

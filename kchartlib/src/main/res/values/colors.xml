@@ -18,4 +18,6 @@
     <color name="chart_selector">#c830343C</color>
     <color name="chart_tab_background">#30343C</color>
     <color name="chart_tab_indicator">#FF6601</color>
+    <color name="chart_minute_avg">#90A901</color>
+    <color name="chart_minute_price">#FF6600</color>
 </resources>

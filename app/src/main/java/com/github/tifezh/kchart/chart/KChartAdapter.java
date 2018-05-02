@@ -54,6 +54,15 @@ public class KChartAdapter extends BaseKChartAdapter {
             notifyDataSetChanged();
         }
     }
+    /**
+     * 向头部添加一条数据
+     */
+    public void addHeaderItemData(KLineEntity obj) {
+        if (obj != null) {
+            datas.add(obj);
+            notifyDataSetChanged();
+        }
+    }
 
     /**
      * 向尾部添加数据

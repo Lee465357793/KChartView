@@ -9,7 +9,7 @@ import java.util.Locale;
  * Created by tifezh on 2017/12/13.
  */
 
-public class BigValueFormatter implements IValueFormatter{
+public class BigValueFormatter implements IValueFormatter {
 
     //必须是排好序的
     private int[] values={10000,1000000,100000000};

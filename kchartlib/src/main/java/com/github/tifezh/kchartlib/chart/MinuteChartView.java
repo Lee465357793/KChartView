@@ -14,8 +14,8 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.github.tifezh.kchartlib.R;
-import com.github.tifezh.kchartlib.chart.entity.IMinuteLine;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.IMinuteLine;
 import com.github.tifezh.kchartlib.chart.formatter.BigValueFormatter;
 import com.github.tifezh.kchartlib.utils.DateUtil;
 
@@ -93,14 +93,14 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
         mTextPaint.setColor(Color.parseColor("#B1B2B6"));
         mTextPaint.setTextSize(mTextSize);
         mTextPaint.setStrokeWidth(dp2px(0.5f));
-        mAvgPaint.setColor(Color.parseColor("#90A901"));
+        mAvgPaint.setColor(getResources().getColor(R.color.chart_minute_avg));
         mAvgPaint.setStrokeWidth(dp2px(0.5f));
         mAvgPaint.setTextSize(mTextSize);
-        mPricePaint.setColor(Color.parseColor("#FF6600"));
+        mPricePaint.setColor(getResources().getColor(R.color.chart_minute_price));
         mPricePaint.setStrokeWidth(dp2px(0.5f));
         mPricePaint.setTextSize(mTextSize);
         mVolumePaintGreen.setColor(ContextCompat.getColor(getContext(), R.color.chart_green));
-        mVolumePaintRed.setColor(ContextCompat.getColor(getContext(),R.color.chart_red));
+        mVolumePaintRed.setColor(ContextCompat.getColor(getContext(), R.color.chart_red));
         mBackgroundColor =Color.parseColor("#202326");
         mBackgroundPaint.setColor(mBackgroundColor);
 

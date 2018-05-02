@@ -117,10 +117,16 @@
         android:layout_height="0.5dp"
         android:background="#494949" />
 
-    <com.github.tifezh.kchartlib.chart.KChartView
-        android:id="@+id/kchart_view"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-    </com.github.tifezh.kchartlib.chart.KChartView>
+        android:layout_height="300dp"
+        android:orientation="horizontal">
+
+        <com.github.tifezh.kchartlib.chart.KChartView
+            android:id="@+id/kchart_view"
+            android:layout_width="match_parent"
+            android:layout_height="300dp">
+        </com.github.tifezh.kchartlib.chart.KChartView>
+    </LinearLayout>
+
 </LinearLayout>

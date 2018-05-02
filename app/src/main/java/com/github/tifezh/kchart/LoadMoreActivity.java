@@ -16,9 +16,11 @@ import com.github.tifezh.kchartlib.chart.KChartView;
 import com.github.tifezh.kchartlib.chart.formatter.DateFormatter;
 
 import java.util.List;
+import java.util.Random;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 /**
  * Created by tifezh on 2017/7/3.
@@ -49,6 +51,8 @@ public class LoadMoreActivity extends AppCompatActivity implements KChartView.KC
 
     private void initView() {
         mAdapter = new KChartAdapter();
+        mKChartView.setDrawCandle(false); //设置是否绘制蜡烛图
+//        mKChartView.setDrawGirdLine(true);
         mKChartView.setAdapter(mAdapter);
         mKChartView.setDateTimeFormatter(new DateFormatter());
         mKChartView.setGridRows(4);
@@ -116,5 +120,12 @@ public class LoadMoreActivity extends AppCompatActivity implements KChartView.KC
                 });
             }
         }).start();
+    }
+    @OnClick(R.id.btn)
+    public void onViewClick(){
+        Random random = new Random();
+        random.nextInt(10);
+        KLineEntity item = (KLineEntity) mAdapter.getItem(new Random().nextInt(10));
+        mAdapter.addHeaderItemData(item);
     }
 }

@@ -6,9 +6,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.github.tifezh.kchartlib.chart.BaseKChartView;
-import com.github.tifezh.kchartlib.chart.entity.IKDJ;
 import com.github.tifezh.kchartlib.chart.base.IChartDraw;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.IKDJ;
 import com.github.tifezh.kchartlib.chart.formatter.ValueFormatter;
 
 /**

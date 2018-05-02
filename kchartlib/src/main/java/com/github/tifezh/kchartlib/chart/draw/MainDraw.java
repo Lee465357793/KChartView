@@ -10,10 +10,10 @@ import android.support.v4.content.ContextCompat;
 
 import com.github.tifezh.kchartlib.R;
 import com.github.tifezh.kchartlib.chart.BaseKChartView;
-import com.github.tifezh.kchartlib.chart.entity.ICandle;
-import com.github.tifezh.kchartlib.chart.entity.IKLine;
 import com.github.tifezh.kchartlib.chart.base.IChartDraw;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.ICandle;
+import com.github.tifezh.kchartlib.chart.entity.IKLine;
 import com.github.tifezh.kchartlib.chart.formatter.ValueFormatter;
 import com.github.tifezh.kchartlib.utils.ViewUtil;
 
@@ -25,10 +25,11 @@ import java.util.List;
  * Created by tifezh on 2016/6/14.
  */
 
-public class MainDraw implements IChartDraw<ICandle>{
+public class MainDraw implements IChartDraw<ICandle> {
 
     private float mCandleWidth = 0;
     private float mCandleLineWidth = 0;
+    private Paint mLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mRedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mGreenPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint ma5Paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -44,25 +45,31 @@ public class MainDraw implements IChartDraw<ICandle>{
     public MainDraw(BaseKChartView view) {
         Context context=view.getContext();
         mContext=context;
-        mRedPaint.setColor(ContextCompat.getColor(context,R.color.chart_red));
-        mGreenPaint.setColor(ContextCompat.getColor(context,R.color.chart_green));
+        mRedPaint.setColor(ContextCompat.getColor(context, R.color.chart_red));
+        mGreenPaint.setColor(ContextCompat.getColor(context, R.color.chart_green));
+        mLinePaint.setColor(ContextCompat.getColor(context, R.color.chart_minute_price));
     }
 
     @Override
     public void drawTranslated(@Nullable ICandle lastPoint, @NonNull ICandle curPoint, float lastX, float curX, @NonNull Canvas canvas, @NonNull BaseKChartView view, int position) {
-        drawCandle(view, canvas, curX, curPoint.getHighPrice(), curPoint.getLowPrice(), curPoint.getOpenPrice(), curPoint.getClosePrice());
-        //画ma5
-        if (lastPoint.getMA5Price() != 0) {
-            view.drawMainLine(canvas, ma5Paint, lastX, lastPoint.getMA5Price(), curX, curPoint.getMA5Price());
+        if (view.isDrawCandle()){//绘制蜡烛图
+            drawCandle(view, canvas, curX, curPoint.getHighPrice(), curPoint.getLowPrice(), curPoint.getOpenPrice(), curPoint.getClosePrice());
+            //画ma5
+            if (lastPoint.getMA5Price() != 0) {
+                view.drawMainLine(canvas, ma5Paint, lastX, lastPoint.getMA5Price(), curX, curPoint.getMA5Price());
+            }
+            //画ma10
+            if (lastPoint.getMA10Price() != 0) {
+                view.drawMainLine(canvas, ma10Paint, lastX, lastPoint.getMA10Price(), curX, curPoint.getMA10Price());
+            }
+            //画ma20
+            if (lastPoint.getMA20Price() != 0) {
+                view.drawMainLine(canvas, ma20Paint, lastX, lastPoint.getMA20Price(), curX, curPoint.getMA20Price());
+            }
+        }else { //绘制线
+            view.drawMainLine(canvas, mRedPaint, lastX, lastPoint.getClosePrice(), curX, curPoint.getClosePrice());
         }
-        //画ma10
-        if (lastPoint.getMA10Price() != 0) {
-            view.drawMainLine(canvas, ma10Paint, lastX, lastPoint.getMA10Price(), curX, curPoint.getMA10Price());
-        }
-        //画ma20
-        if (lastPoint.getMA20Price() != 0) {
-            view.drawMainLine(canvas, ma20Paint, lastX, lastPoint.getMA20Price(), curX, curPoint.getMA20Price());
-        }
+
     }
 
     @Override
@@ -76,7 +83,7 @@ public class MainDraw implements IChartDraw<ICandle>{
         x += ma10Paint.measureText(text);
         text = "MA20:" + view.formatValue(point.getMA20Price()) + " ";
         canvas.drawText(text, x, y, ma20Paint);
-        if (view.isLongPress()) {
+        if (view.isLongPress() && view.isDrawCandle()) {
             drawSelector(view, canvas);
         }
     }
@@ -150,6 +157,7 @@ public class MainDraw implements IChartDraw<ICandle>{
         int index = view.getSelectedIndex();
         float padding = ViewUtil.Dp2Px(mContext, 5);
         float margin = ViewUtil.Dp2Px(mContext, 5);
+        float leftTableWidth = view.getLeftTitleMargin();
         float width = 0;
         float left;
         float top = margin+view.getTopPadding();
@@ -170,7 +178,7 @@ public class MainDraw implements IChartDraw<ICandle>{
 
         float x = view.translateXtoX(view.getX(index));
         if (x > view.getChartWidth() / 2) {
-            left = margin;
+            left = leftTableWidth;
         } else {
             left = view.getChartWidth() - width - margin;
         }
@@ -276,4 +284,6 @@ public class MainDraw implements IChartDraw<ICandle>{
     public void setCandleSolid(boolean candleSolid) {
         mCandleSolid = candleSolid;
     }
+
+
 }

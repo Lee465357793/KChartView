@@ -9,13 +9,11 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.github.tifezh.kchartlib.R;
-import com.github.tifezh.kchartlib.utils.ViewUtil;
 
 
 /**
@@ -49,8 +47,8 @@ public class KChartTabView extends RelativeLayout implements View.OnClickListene
 
     private void init() {
         View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_tab, null, false);
-        LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewUtil.Dp2Px(getContext(), 30));
-        view.setLayoutParams(layoutParams);
+//        LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewUtil.Dp2Px(getContext(), 30));
+//        view.setLayoutParams(layoutParams);
         addView(view);
         mLlContainer = (LinearLayout) findViewById(R.id.ll_container);
         mTvFullScreen = (TextView) findViewById(R.id.tv_fullScreen);

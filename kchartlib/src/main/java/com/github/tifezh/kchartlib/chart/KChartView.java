@@ -89,13 +89,16 @@ public class KChartView extends BaseKChartView {
                 setSelectedLineWidth(array.getDimension(R.styleable.KChartView_kc_selected_line_width,getDimension(R.dimen.chart_line_width)));
                 setGridLineWidth(array.getDimension(R.styleable.KChartView_kc_grid_line_width,getDimension(R.dimen.chart_grid_line_width)));
                 setGridLineColor(array.getColor(R.styleable.KChartView_kc_grid_line_color,getColor(R.color.chart_grid_line)));
+
                 //macd
                 setMACDWidth(array.getDimension(R.styleable.KChartView_kc_macd_width,getDimension(R.dimen.chart_candle_width)));
                 setDIFColor(array.getColor(R.styleable.KChartView_kc_dif_color,getColor(R.color.chart_ma5)));
                 setDEAColor(array.getColor(R.styleable.KChartView_kc_dea_color,getColor(R.color.chart_ma10)));
                 setMACDColor(array.getColor(R.styleable.KChartView_kc_macd_color,getColor(R.color.chart_ma20)));
+
                 //kdj
                 setKColor(array.getColor(R.styleable.KChartView_kc_dif_color,getColor(R.color.chart_ma5)));
+
                 setDColor(array.getColor(R.styleable.KChartView_kc_dea_color,getColor(R.color.chart_ma10)));
                 setJColor(array.getColor(R.styleable.KChartView_kc_macd_color,getColor(R.color.chart_ma20)));
                 //rsi
@@ -121,7 +124,7 @@ public class KChartView extends BaseKChartView {
                 ColorStateList colorStateList = array.getColorStateList(R.styleable.KChartView_kc_tab_text_color);
                 if(colorStateList==null)
                 {
-                    mKChartTabView.setTextColor(ContextCompat.getColorStateList(getContext(),R.color.tab_text_color_selector));
+                    mKChartTabView.setTextColor(ContextCompat.getColorStateList(getContext(), R.color.tab_text_color_selector));
                 }
                 else {
                     mKChartTabView.setTextColor(colorStateList);

@@ -119,9 +119,8 @@
 
     <com.github.tifezh.kchartlib.chart.KChartView
         android:id="@+id/kchart_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_width="wrap_content"
+        android:layout_height="300dp"
         app:kc_text_size="@dimen/chart_text_size"
         app:kc_text_color="#787878"
         app:kc_line_width="@dimen/chart_line_width"
@@ -129,7 +128,7 @@
         app:kc_selected_line_color="#B1B2B6"
         app:kc_selected_line_width="1dp"
         app:kc_grid_line_color="#d0d0d0"
-        app:kc_grid_line_width="0.5dp"
+        app:kc_grid_line_width="1dp"
         app:kc_point_width="6dp"
         app:kc_macd_width="4dp"
         app:kc_dif_color="@color/chart_ma5"
@@ -156,4 +155,10 @@
         app:kc_tab_background_color="#fff"
         app:kc_candle_solid="false">
     </com.github.tifezh.kchartlib.chart.KChartView>
+
+    <Button
+        android:id="@+id/btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="add_dtaa"/>
 </LinearLayout>

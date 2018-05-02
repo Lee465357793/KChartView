@@ -9,9 +9,9 @@ import android.support.v4.content.ContextCompat;
 
 import com.github.tifezh.kchartlib.R;
 import com.github.tifezh.kchartlib.chart.BaseKChartView;
-import com.github.tifezh.kchartlib.chart.entity.IMACD;
 import com.github.tifezh.kchartlib.chart.base.IChartDraw;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.IMACD;
 import com.github.tifezh.kchartlib.chart.formatter.ValueFormatter;
 
 /**
@@ -31,8 +31,8 @@ public class MACDDraw implements IChartDraw<IMACD> {
 
     public MACDDraw(BaseKChartView view) {
         Context context=view.getContext();
-        mRedPaint.setColor(ContextCompat.getColor(context,R.color.chart_red));
-        mGreenPaint.setColor(ContextCompat.getColor(context,R.color.chart_green));
+        mRedPaint.setColor(ContextCompat.getColor(context, R.color.chart_red));
+        mGreenPaint.setColor(ContextCompat.getColor(context, R.color.chart_green));
     }
 
     @Override

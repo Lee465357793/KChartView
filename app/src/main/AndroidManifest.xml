@@ -28,6 +28,8 @@
                   android:configChanges="keyboardHidden|orientation|screenSize"
                   android:screenOrientation="portrait">
         </activity>
+
+        <activity android:name=".ChartActivity"/>
     </application>
 
 </manifest>

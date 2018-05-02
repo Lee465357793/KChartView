@@ -36,6 +36,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_minute:
                 intent.setClass(this,MinuteChartActivity.class);
                 break;
+            case R.id.btn_all:
+                intent.setClass(this,ChartActivity.class);
+                break;
         }
         startActivity(intent);
     }

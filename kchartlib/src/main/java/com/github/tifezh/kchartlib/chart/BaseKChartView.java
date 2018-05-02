@@ -4,23 +4,24 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.database.DataSetObserver;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
 
 import com.github.tifezh.kchartlib.R;
-import com.github.tifezh.kchartlib.chart.entity.IKLine;
-import com.github.tifezh.kchartlib.chart.formatter.TimeFormatter;
-import com.github.tifezh.kchartlib.chart.formatter.ValueFormatter;
 import com.github.tifezh.kchartlib.chart.base.IAdapter;
 import com.github.tifezh.kchartlib.chart.base.IChartDraw;
 import com.github.tifezh.kchartlib.chart.base.IDateTimeFormatter;
 import com.github.tifezh.kchartlib.chart.base.IValueFormatter;
+import com.github.tifezh.kchartlib.chart.entity.IKLine;
+import com.github.tifezh.kchartlib.chart.formatter.TimeFormatter;
+import com.github.tifezh.kchartlib.chart.formatter.ValueFormatter;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -117,6 +118,33 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
     private Rect mChildRect;
 
     private float mLineWidth;
+    /**
+     * 左边 表 文本的 padding
+     */
+    private float mPadingValue = 10;
+    /**
+     * 横向坐标标题显示位置，相对于最左边线
+     */
+    private float mLeftTitleMargin;
+    private float mDefaultGridLineWidth;
+    /**
+     * 是否以蜡烛图方式绘制，否则 绘制线
+     */
+    private boolean mDrawCandle = true;
+    /**
+     * 是否绘制分割线
+     */
+    private boolean mDrawGirdLine = false;
+    private boolean mIsOutward;
+    /**
+     * 分时图 k 线 填充路径
+     */
+    protected Path cubicPath = new Path();
+    /**
+     * 分时图 k 线 填充绘笔
+     */
+    protected Paint mDrawFillPaint = new Paint();
+
 
     public BaseKChartView(Context context) {
         super(context);
@@ -135,13 +163,15 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
 
     private void init() {
         setWillNotDraw(false);
+        mDrawFillPaint.setStyle(Paint.Style.FILL);
+        mDrawFillPaint.setColor(Color.parseColor("#66FF5252"));
         mDetector = new GestureDetectorCompat(getContext(), this);
         mScaleDetector = new ScaleGestureDetector(getContext(), this);
         mTopPadding = (int) getResources().getDimension(R.dimen.chart_top_padding);
         mBottomPadding = (int)getResources().getDimension(R.dimen.chart_bottom_padding);
 
         mKChartTabView = new KChartTabView(getContext());
-        addView(mKChartTabView, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        addView(mKChartTabView, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         mKChartTabView.setOnTabSelectListener(new KChartTabView.TabSelectListener() {
             @Override
             public void onTabSelected(int type) {
@@ -160,12 +190,24 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
     }
 
 
+    public float getLeftTitleMargin() {
+        return mLeftTitleMargin;
+    }
+
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        this.mWidth = w;
+        this.mWidth =w;
+        mPadingValue = w / 106;
+        String format = formatValue(0f);
+        if (mIsOutward){
+            mLeftTitleMargin = mTextPaint.measureText(format, 0, format.length()) + 2 * mPadingValue;
+        }else {
+            mLeftTitleMargin = 0;
+        }
         initRect(w,h);
         mKChartTabView.setTranslationY(mMainRect.bottom);
+        mKChartTabView.setTranslationX(mLeftTitleMargin);
         setTranslateXFromScrollX(mScrollX);
     }
 
@@ -176,7 +218,7 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         int mMainHeight = (int) (displayHeight * 0.75f);
         int mChildHeight = (int) (displayHeight * 0.25f);
         mMainRect=new Rect(0,mTopPadding,mWidth,mTopPadding+mMainHeight);
-        mTabRect=new Rect(0,mMainRect.bottom,mWidth,mMainRect.bottom+mMainChildSpace);
+        mTabRect=new Rect(0, mMainRect.bottom,mWidth,mMainRect.bottom+mMainChildSpace);
         mChildRect=new Rect(0,mTabRect.bottom,mWidth,mTabRect.bottom+mChildHeight);
     }
 
@@ -222,17 +264,30 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         //横向的grid
         float rowSpace = mMainRect.height() / mGridRows;
         for (int i = 0; i <= mGridRows; i++) {
-            canvas.drawLine(0, rowSpace * i+mMainRect.top, mWidth, rowSpace * i+mMainRect.top, mGridPaint);
+            if (mDrawGirdLine){//只画 首，尾 分割线
+                if (i == mGridRows){
+                    canvas.drawLine(mLeftTitleMargin, rowSpace * i+mMainRect.top, mWidth, rowSpace * i+mMainRect.top, mGridPaint);
+                }
+            }else {
+                canvas.drawLine(mLeftTitleMargin, rowSpace * i+mMainRect.top, mWidth, rowSpace * i+mMainRect.top, mGridPaint);
+            }
         }
         //-----------------------下方子图------------------------
-        canvas.drawLine(0, mChildRect.top, mWidth, mChildRect.top, mGridPaint);
-        canvas.drawLine(0, mChildRect.bottom, mWidth, mChildRect.bottom, mGridPaint);
+        canvas.drawLine(mLeftTitleMargin, mChildRect.top, mWidth, mChildRect.top, mGridPaint);
+        canvas.drawLine(mLeftTitleMargin, mChildRect.bottom, mWidth, mChildRect.bottom, mGridPaint);
 
         //纵向的grid
-        float columnSpace = mWidth / mGridColumns;
+        float columnSpace = (mWidth - mLeftTitleMargin) / mGridColumns;
         for (int i = 0; i <= mGridColumns; i++) {
-            canvas.drawLine(columnSpace * i, mMainRect.top, columnSpace * i, mMainRect.bottom, mGridPaint);
-            canvas.drawLine(columnSpace * i, mChildRect.top, columnSpace * i, mChildRect.bottom, mGridPaint);
+            if (mDrawGirdLine){ //只画 首，尾 分割线
+                if (i == 0){
+                    canvas.drawLine(columnSpace * i + mLeftTitleMargin, mChildRect.top, columnSpace * i + mLeftTitleMargin, mChildRect.bottom, mGridPaint);
+                    canvas.drawLine(columnSpace * i + mLeftTitleMargin, mMainRect.top, columnSpace * i + mLeftTitleMargin, mMainRect.bottom, mGridPaint);
+                }
+            }else {
+                canvas.drawLine(columnSpace * i + mLeftTitleMargin, mChildRect.top, columnSpace * i + mLeftTitleMargin, mChildRect.bottom, mGridPaint);
+                canvas.drawLine(columnSpace * i + mLeftTitleMargin, mMainRect.top, columnSpace * i + mLeftTitleMargin, mMainRect.bottom, mGridPaint);
+            }
         }
     }
 
@@ -248,6 +303,7 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         for (int i = mStartIndex; i <= mStopIndex; i++) {
             Object currentPoint = getItem(i);
             float currentPointX = getX(i);
+
             Object lastPoint = i == 0 ? currentPoint : getItem(i - 1);
             float lastX = i == 0 ? currentPointX : getX(i - 1);
             if (mMainDraw != null) {
@@ -256,8 +312,8 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
             if (mChildDraw != null) {
                 mChildDraw.drawTranslated(lastPoint, currentPoint, lastX, currentPointX, canvas, this, i);
             }
-
         }
+
         //画选择线
         if (isLongPress) {
             IKLine point = (IKLine) getItem(mSelectedIndex);
@@ -267,6 +323,7 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
             canvas.drawLine(-mTranslateX, y, -mTranslateX + mWidth / mScaleX, y, mSelectedLinePaint);
             canvas.drawLine(x,mChildRect.top, x,mChildRect.bottom, mSelectedLinePaint);
         }
+
         //还原 平移缩放
         canvas.restore();
     }
@@ -281,48 +338,64 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         float baseLine = (textHeight - fm.bottom - fm.top) / 2;
         //--------------画上方k线图的值-------------
         if (mMainDraw != null) {
-            canvas.drawText(formatValue(mMainMaxValue), 0, baseLine+mMainRect.top, mTextPaint);
-            canvas.drawText(formatValue(mMainMinValue), 0, mMainRect.bottom-textHeight+baseLine, mTextPaint);
+            canvas.drawText(formatValue(mMainMaxValue), mPadingValue, baseLine+mMainRect.top, mTextPaint);
+            canvas.drawText(formatValue(mMainMinValue), mPadingValue, mMainRect.bottom-textHeight+baseLine, mTextPaint);
+
             float rowValue = (mMainMaxValue - mMainMinValue) / mGridRows;
             float rowSpace = mMainRect.height() / mGridRows;
             for (int i = 1; i < mGridRows; i++) {
                 String text = formatValue(rowValue * (mGridRows - i) + mMainMinValue);
-                canvas.drawText(text, 0, fixTextY(rowSpace * i+mMainRect.top), mTextPaint);
+                canvas.drawText(text, mPadingValue, fixTextY(rowSpace * i+mMainRect.top), mTextPaint);
             }
         }
         //--------------画下方子图的值-------------
         if (mChildDraw != null) {
-            canvas.drawText(mChildDraw.getValueFormatter().format(mChildMaxValue), 0, mChildRect.top+ baseLine, mTextPaint);
-            canvas.drawText(mChildDraw.getValueFormatter().format(mChildMinValue), 0, mChildRect.bottom, mTextPaint);
+            canvas.drawText(mChildDraw.getValueFormatter().format(mChildMaxValue), mPadingValue, mChildRect.top+ baseLine, mTextPaint);
+            canvas.drawText(mChildDraw.getValueFormatter().format(mChildMinValue), mPadingValue, mChildRect.bottom, mTextPaint);
         }
         //--------------画时间---------------------
-        float columnSpace = mWidth / mGridColumns;
+        float columnSpace = (mWidth - mLeftTitleMargin) / mGridColumns;
         float y = mChildRect.bottom + baseLine;
 
-        float startX = getX(mStartIndex) - mPointWidth / 2;
+        float startX = getX(mStartIndex) - mLeftTitleMargin - 2 * mPadingValue - mPointWidth / 2;
         float stopX = getX(mStopIndex) + mPointWidth / 2;
 
         for (int i = 1; i < mGridColumns; i++) {
-            float translateX = xToTranslateX(columnSpace * i);
+            float translateX = xToTranslateX(columnSpace * i + mLeftTitleMargin);
             if (translateX >= startX && translateX <= stopX) {
                 int index = indexOfTranslateX(translateX);
                 String text = formatDateTime(mAdapter.getDate(index));
-                canvas.drawText(text, columnSpace * i - mTextPaint.measureText(text) / 2, y, mTextPaint);
+                canvas.drawText(text, columnSpace * i + mLeftTitleMargin - mTextPaint.measureText(text) / 2, y, mTextPaint);
             }
         }
-
+        //绘制左边时间
         float translateX = xToTranslateX(0);
         if (translateX >= startX && translateX <= stopX) {
-            canvas.drawText(formatDateTime(getAdapter().getDate(mStartIndex)), 0, y, mTextPaint);
+            canvas.drawText(formatDateTime(getAdapter().getDate(mStartIndex)), mLeftTitleMargin, y, mTextPaint);
         }
+        //绘制右边时间
         translateX = xToTranslateX(mWidth);
         if (translateX >= startX && translateX <= stopX) {
             String text = formatDateTime(getAdapter().getDate(mStopIndex));
             canvas.drawText(text, mWidth - mTextPaint.measureText(text), y, mTextPaint);
         }
+
+        if (!mDrawCandle){
+            drawFillPath(canvas, startX, stopX);
+        }
+
         if (isLongPress) {
             IKLine point = (IKLine) getItem(mSelectedIndex);
-            String text = formatValue(point.getClosePrice());
+            String text;
+            String timeText;
+            if (mDrawCandle){
+                text = formatValue(point.getClosePrice());
+                timeText = formatDateTime(new Date(System.currentTimeMillis()));
+            }else {//TODO 分时图时  显示当前价
+                text = formatValue(point.getClosePrice());
+                timeText = formatDateTime(new Date(System.currentTimeMillis()));
+            }
+
             float r = textHeight / 2;
             y = getMainY(point.getClosePrice());
             float x;
@@ -334,6 +407,57 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
                 canvas.drawRect(x, y - r, mWidth, y + r, mBackgroundPaint);
             }
             canvas.drawText(text, x, fixTextY(y), mTextPaint);
+
+
+            //画指示线的时间 下方时间
+            float timeTextWidth = mTextPaint.measureText(timeText);
+            if (translateXtoX(getX(mSelectedIndex)) + timeTextWidth/2  > mWidth){
+                canvas.drawRect(translateXtoX(getX(mSelectedIndex)) - timeTextWidth, mMainRect.bottom - textHeight,mWidth, mMainRect.bottom + textHeight, mBackgroundPaint);
+                canvas.drawText(timeText, translateXtoX(getX(mSelectedIndex)) - timeTextWidth, mMainRect.bottom-textHeight+baseLine, mTextPaint);
+            }else if (translateXtoX(getX(mSelectedIndex)) - timeTextWidth/2  < mLeftTitleMargin){
+                canvas.drawRect(mLeftTitleMargin, mMainRect.bottom - textHeight,mLeftTitleMargin + timeTextWidth, mMainRect.bottom + textHeight, mBackgroundPaint);
+                canvas.drawText(timeText, mLeftTitleMargin, mMainRect.bottom-textHeight+baseLine, mTextPaint);
+            }else{
+                canvas.drawRect(translateXtoX(getX(mSelectedIndex)) - timeTextWidth/2, mMainRect.bottom - textHeight,translateXtoX(getX(mSelectedIndex)) + timeTextWidth/2, mMainRect.bottom + textHeight, mBackgroundPaint);
+                canvas.drawText(timeText, translateXtoX(getX(mSelectedIndex)) - timeTextWidth/2, mMainRect.bottom-textHeight+baseLine, mTextPaint);
+            }
+        }
+    }
+
+    /**
+     * 绘制 k线 下部填充
+     * @param canvas
+     * @param startX
+     * @param stopX
+     */
+    private void drawFillPath(Canvas canvas, float startX, float stopX) {
+        cubicPath.reset();
+        float xtranslateX = xToTranslateX(mLeftTitleMargin);
+        if (xtranslateX >= startX && xtranslateX <= stopX) {
+            //获取当前屏幕左侧显示的数据下标
+            int index = indexOfTranslateX(xtranslateX);
+            IKLine point = (IKLine) getItem(index);
+            //移动画笔至起始位置
+            cubicPath.moveTo(mLeftTitleMargin, getMainY(point.getClosePrice()));
+            //添加过程点
+            for (int i = index; i < mStopIndex; i++) {
+                point = (IKLine) getItem(i);
+                float currentPointY = getMainY(point.getClosePrice());
+                cubicPath.lineTo(translateXtoX(getX(i)), currentPointY);
+            }
+            //添加右上角位置（保证滑动时，右侧绘制竖直）
+            point = (IKLine) getItem(mStopIndex);
+            cubicPath.lineTo(translateXtoX(getX(mStopIndex)), getMainY(point.getClosePrice()));
+            cubicPath.lineTo(mWidth, getMainY(point.getClosePrice()));
+            //添加右下角点位置
+            cubicPath.lineTo(mWidth, mMainRect.bottom);
+            //添加左下角点位置
+            cubicPath.lineTo(mLeftTitleMargin, mMainRect.bottom);
+            //添加左上角结束位置
+            point = (IKLine) getItem(index);
+            cubicPath.lineTo(mLeftTitleMargin, getMainY(point.getClosePrice()));
+
+            canvas.drawPath(cubicPath, mDrawFillPaint);
         }
     }
 
@@ -349,12 +473,13 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         if (position >= 0 && position < mItemCount) {
             if (mMainDraw != null) {
                 float y =mMainRect.top+baseLine-textHeight;
-                float x = 0;
+                float x = mLeftTitleMargin;
                 mMainDraw.drawText(canvas, this, position, x, y);
             }
-            if (mChildDraw != null) {
+            if (mChildDraw != null) { //底部 ma5、ma10、ma20 文本位置
                 float y = mChildRect.top + baseLine;
-                float x = mTextPaint.measureText(mChildDraw.getValueFormatter().format(mChildMaxValue) + " ");
+                float x = mLeftTitleMargin;
+//                float x = mTextPaint.measureText(mChildDraw.getValueFormatter().format(mChildMaxValue) + " ");
                 mChildDraw.drawText(canvas, this, position, x, y);
             }
         }
@@ -439,8 +564,8 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         mMainMinValue = Float.MAX_VALUE;
         mChildMaxValue = Float.MIN_VALUE;
         mChildMinValue = Float.MAX_VALUE;
-        mStartIndex = indexOfTranslateX(xToTranslateX(0));
-        mStopIndex = indexOfTranslateX(xToTranslateX(mWidth));
+        mStartIndex = indexOfTranslateX(xToTranslateX(mLeftTitleMargin + (2*mPadingValue))); //TODO 这里修改蜡烛图起始位置(加上pading,解决绘制越界问题)
+        mStopIndex = indexOfTranslateX(xToTranslateX(mWidth));//TODO 这里修改蜡烛图结束位置
         for (int i = mStartIndex; i <= mStopIndex; i++) {
             IKLine point = (IKLine) getItem(i);
             if (mMainDraw != null) {
@@ -835,6 +960,7 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
      * 设置表格线宽度
      */
     public void setGridLineWidth(float width) {
+        mDefaultGridLineWidth = width;
         mGridPaint.setStrokeWidth(width);
     }
 
@@ -843,6 +969,12 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
      */
     public void setGridLineColor(int color) {
         mGridPaint.setColor(color);
+    }
+    /**
+     * 设置 k线 下部填充颜色
+     */
+    public void setFillColor(int color) {
+        mDrawFillPaint.setColor(color);
     }
 
     /**
@@ -881,6 +1013,34 @@ public abstract class BaseKChartView extends ScrollAndScaleView {
         mBackgroundPaint.setColor(color);
     }
 
+
+    public boolean isDrawCandle() {
+        return mDrawCandle;
+    }
+
+    /**
+     * 是否以蜡烛图方式绘制，否则 绘制线
+     * @param drawCandle
+     */
+    public void setDrawCandle(boolean drawCandle) {
+        mDrawCandle = drawCandle;
+    }
+
+    /**
+     * 设置是否绘制分割线
+     * @param drawGirdLine
+     */
+    public void setDrawGirdLine(boolean drawGirdLine) {
+        mDrawGirdLine = drawGirdLine;
+    }
+
+    /**
+     * 设置左边分界标题是否显示在边框外部
+     * @param isOutward
+     */
+    public void                                                                                                                                         setLeftTitleOutward(boolean isOutward) {
+        mIsOutward = isOutward;
+    }
 
     /**
      * 选中点变化时的监听
