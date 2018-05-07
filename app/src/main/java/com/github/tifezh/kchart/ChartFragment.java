@@ -55,7 +55,8 @@ public class ChartFragment extends Fragment {
     private void initView() {
         mIndex = getArguments().getInt("index");
         if (mIndex == 0){
-            mChartView.setDrawCandle(false);
+            mChartView.setDrawMinuteStyle(true);
+            mChartView.setDrawTabView(false);
             mChartView.setDrawGirdLine(false);
 //            mChartView.setGridColumns();
             mChartView.setLeftTitleOutward(true);

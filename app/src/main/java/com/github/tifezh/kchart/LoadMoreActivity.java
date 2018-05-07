@@ -51,7 +51,7 @@ public class LoadMoreActivity extends AppCompatActivity implements KChartView.KC
 
     private void initView() {
         mAdapter = new KChartAdapter();
-        mKChartView.setDrawCandle(false); //设置是否绘制蜡烛图
+        mKChartView.setDrawMinuteStyle(true); //设置是否绘制蜡烛图
 //        mKChartView.setDrawGirdLine(true);
         mKChartView.setAdapter(mAdapter);
         mKChartView.setDateTimeFormatter(new DateFormatter());

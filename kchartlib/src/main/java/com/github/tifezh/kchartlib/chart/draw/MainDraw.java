@@ -52,7 +52,9 @@ public class MainDraw implements IChartDraw<ICandle> {
 
     @Override
     public void drawTranslated(@Nullable ICandle lastPoint, @NonNull ICandle curPoint, float lastX, float curX, @NonNull Canvas canvas, @NonNull BaseKChartView view, int position) {
-        if (view.isDrawCandle()){//绘制蜡烛图
+        if (view.isDrawMinuteStyle()){//绘制线
+            view.drawMainLine(canvas, mRedPaint, lastX, lastPoint.getClosePrice(), curX, curPoint.getClosePrice());
+        }else { //绘制蜡烛图
             drawCandle(view, canvas, curX, curPoint.getHighPrice(), curPoint.getLowPrice(), curPoint.getOpenPrice(), curPoint.getClosePrice());
             //画ma5
             if (lastPoint.getMA5Price() != 0) {
@@ -66,8 +68,6 @@ public class MainDraw implements IChartDraw<ICandle> {
             if (lastPoint.getMA20Price() != 0) {
                 view.drawMainLine(canvas, ma20Paint, lastX, lastPoint.getMA20Price(), curX, curPoint.getMA20Price());
             }
-        }else { //绘制线
-            view.drawMainLine(canvas, mRedPaint, lastX, lastPoint.getClosePrice(), curX, curPoint.getClosePrice());
         }
 
     }
@@ -83,7 +83,7 @@ public class MainDraw implements IChartDraw<ICandle> {
         x += ma10Paint.measureText(text);
         text = "MA20:" + view.formatValue(point.getMA20Price()) + " ";
         canvas.drawText(text, x, y, ma20Paint);
-        if (view.isLongPress() && view.isDrawCandle()) {
+        if (view.isLongPress() && !view.isDrawMinuteStyle()) {
             drawSelector(view, canvas);
         }
     }

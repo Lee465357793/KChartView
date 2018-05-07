@@ -12,6 +12,6 @@ import java.text.DecimalFormat;
 public class ValueFormatter implements IValueFormatter {
     @Override
     public String format(float value) {
-        return new DecimalFormat("0000.0000").format(value);
+        return new DecimalFormat("##0000.0000").format(value);
     }
 }

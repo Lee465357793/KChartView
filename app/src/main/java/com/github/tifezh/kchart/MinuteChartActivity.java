@@ -4,11 +4,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 
 import com.github.tifezh.kchart.chart.MinuteLineEntity;
 import com.github.tifezh.kchartlib.chart.MinuteChartView;
+import com.github.tifezh.kchartlib.chart.entity.IMinuteLine;
 import com.github.tifezh.kchartlib.utils.DateUtil;
 
 import java.text.ParseException;
@@ -27,6 +30,9 @@ public class MinuteChartActivity extends AppCompatActivity {
 
     @BindView(R.id.minuteChartView)
     MinuteChartView mMinuteChartView;
+    @BindView(R.id.btn_add)
+    Button mBtnAdd;
+    private List<MinuteLineEntity> mMinuteData;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -39,8 +45,18 @@ public class MinuteChartActivity extends AppCompatActivity {
                     WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
         }
         ButterKnife.bind(this);
+
         initView();
         initData();
+
+        mBtnAdd.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int itemSize = mMinuteChartView.getItemSize();
+                IMinuteLine item = mMinuteData.get(itemSize < mMinuteData.size() ? itemSize + 1 : itemSize);
+                mMinuteChartView.addPoint(item);
+            }
+        });
     }
 
     private void initView() {
@@ -51,23 +67,25 @@ public class MinuteChartActivity extends AppCompatActivity {
             //整体开始时间
             Date startTime = DateUtil.shortTimeFormat.parse("09:30");
             //整体的结束时间
-            Date endTime = DateUtil.shortTimeFormat.parse("15:00");
+            Date endTime = DateUtil.shortTimeFormat.parse("16:00");
             //休息开始时间
-            Date firstEndTime = DateUtil.shortTimeFormat.parse("11:30");
+            Date firstEndTime = DateUtil.shortTimeFormat.parse("12:00");
             //休息结束时间
             Date secondStartTime = DateUtil.shortTimeFormat.parse("13:00");
             //获取随机生成的数据
-            List<MinuteLineEntity> minuteData =
-                    DataRequest.getMinuteData(startTime,
-                            endTime,
-                            firstEndTime,
-                            secondStartTime);
-            mMinuteChartView.initData(minuteData,
+            mMinuteData = DataRequest.getMinuteData(startTime,
+                    endTime,
+                    firstEndTime,
+                    secondStartTime);
+
+            List<MinuteLineEntity> minuteLineEntities = mMinuteData.subList(0, mMinuteData.size() - 50);
+
+            mMinuteChartView.initData(minuteLineEntities,
                     startTime,
                     endTime,
                     firstEndTime,
                     secondStartTime,
-                    (float) (minuteData.get(0).price - 0.5 + Math.random()));
+                    (float) (mMinuteData.get(0).price - 0.5 + Math.random()));
         } catch (ParseException e) {
             e.printStackTrace();
         }
