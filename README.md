@@ -3,8 +3,11 @@ KChart for Android ；股票k线图
 
 效果预览
 -------  
+
 * 支持macd,kdj,rsi,boll多种指标切换，支持横竖屏切换，支持长按，缩放，滑动，fling事件等。
 <div class='row'>
+        <img src='https://gitee.com/uploads/images/2018/0428/223609_a97b3f4e_862414.png' width="300px"/>
+        <img src='https://gitee.com/uploads/images/2018/0428/223722_3c39a50d_862414.png' width="300px"/>
         <img src='https://github.com/tifezh/KChartView/blob/master/img/demo.gif' width="300px"/>
 </div>
 
