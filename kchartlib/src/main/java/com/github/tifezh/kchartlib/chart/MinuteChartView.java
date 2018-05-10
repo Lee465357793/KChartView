@@ -41,6 +41,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
     private int GridColumns = 1;
     private Paint mAvgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mGridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Paint mPointLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mPricePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Paint mBackgroundPaint= new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -67,6 +68,11 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
 
     private IValueFormatter mVolumeFormatter;
     private int mHeight;
+    /**
+     * 休市时间 X 轴分割线
+     */
+    private long mCenterPointValue;
+
 
     public MinuteChartView(Context context) {
         super(context);
@@ -91,6 +97,8 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
         mVolumeHeight=dp2px(mVolumeHeight);
         mGridPaint.setColor(Color.parseColor("#353941"));
         mGridPaint.setStrokeWidth(dp2px(1));
+        mPointLinePaint.setColor(Color.parseColor("#FFFFFF"));
+        mPointLinePaint.setStrokeWidth(dp2px(1));
         mTextPaint.setColor(Color.parseColor("#B1B2B6"));
         mTextPaint.setTextSize(mTextSize);
         mTextPaint.setStrokeWidth(dp2px(0.5f));
@@ -126,12 +134,8 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
                 }
                 break;
             case MotionEvent.ACTION_UP:
-//                isLongPress = false;
-//                invalidate();
                 break;
             case MotionEvent.ACTION_CANCEL:
-//                isLongPress = false;
-//                invalidate();
                 break;
         }
         return true;
@@ -167,7 +171,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
      * 获取最大能有多少个点
      */
     private long getMaxPointCount(){
-       return mTotalTime/ONE_MINUTE;
+        return mTotalTime/ONE_MINUTE;
     }
 
 
@@ -221,6 +225,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
                 throw new IllegalStateException("时间区间有误");
             }
             mTotalTime-=mSecondStartTime.getTime()-mFirstEndTime.getTime()-60000;
+            mCenterPointValue = mFirstStartTime.getTime()-mFirstEndTime.getTime();
         }
         setValueStart(yesClosePrice);
         if (data != null) {
@@ -266,7 +271,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             mVolumeMax=1;
         }
 
-//        mVolumeMax*=1.1f;
+        //        mVolumeMax*=1.1f;
         //成交量的缩放值
         mVolumeScaleY = mVolumeHeight / mVolumeMax;
         mPointWidth=(float) mWidth/getMaxPointCount();
@@ -289,19 +294,6 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             for (int i = 0; i < mPoints.size(); i++) {
                 IMinuteLine curPoint=mPoints.get(i);
                 float curX=getX(i);
-                if ("12:00".equals(DateUtil.shortTimeFormat.format(curPoint.getDate()))){
-                    //绘制垂直中分线
-                    canvas.drawLine(curX, 0, curX, mKHeight, mGridPaint);
-                    canvas.drawLine(curX, mKHeight + mBottomPadding, curX, mHeight, mGridPaint);
-                    String seconfStartTime = DateUtil.shortTimeFormat.format(mSecondStartTime);
-                    String firstEndTime = DateUtil.shortTimeFormat.format(mFirstEndTime);
-                    String text = firstEndTime + "/" + seconfStartTime;
-                    Paint.FontMetrics fm = mTextPaint.getFontMetrics();
-                    float textHeight = fm.descent - fm.ascent;
-                    float baseLine = (textHeight - fm.bottom - fm.top) / 2;
-                    canvas.drawText(text, curX - mTextPaint.measureText(text)/2, mHeight + baseLine, mTextPaint);
-
-                }
                 canvas.drawLine(lastX, getY(lastPoint.getPrice()), curX, getY(curPoint.getPrice()), mPricePaint);
                 canvas.drawLine(lastX, getY(lastPoint.getAvgPrice()),curX, getY(curPoint.getAvgPrice()), mAvgPaint);
                 //成交量
@@ -311,6 +303,26 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
                 lastX=curX;
             }
 
+            //绘制垂直中分线
+            int centerPoint = (int) (mCenterPointValue == 0 ? mTotalTime / 2 : mCenterPointValue);
+            float centerX = Math.abs(1f * centerPoint / mTotalTime * (mWidth - mPointWidth) + mPointWidth / 2f);
+            canvas.drawLine(centerX, 0, centerX, mKHeight, mGridPaint);
+            canvas.drawLine(centerX, mKHeight + mBottomPadding, centerX, mHeight, mGridPaint);
+
+            Paint.FontMetrics fm = mTextPaint.getFontMetrics();
+            float textHeight = fm.descent - fm.ascent;
+            float baseLine = (textHeight - fm.bottom - fm.top) / 2;
+            if (mFirstEndTime != null){
+                String centerText = DateUtil.shortTimeFormat.format(mFirstEndTime) + "/" + DateUtil.shortTimeFormat.format(mSecondStartTime);
+                canvas.drawText(centerText, centerX - mTextPaint.measureText(centerText)/2, mHeight + baseLine, mTextPaint);
+            }
+
+            //画波动指示线
+            IMinuteLine pointLast = mPoints.get(mPoints.size()-1);
+            canvas.drawLine(0, getY(pointLast.getPrice()), mWidth, getY(pointLast.getPrice()), mPointLinePaint);
+            canvas.drawCircle(getX(mPoints.size()-1), getY(pointLast.getPrice()), dp2px(2), mVolumePaintRed);
+
+            //画指示线
             IMinuteLine point = mPoints.get(selectedIndex == -1? mPoints.size()-1 : selectedIndex);
             float x=getX(selectedIndex == -1? mPoints.size()-1 : selectedIndex);
             canvas.drawLine(x, 0, x, mHeight, mTextPaint);
@@ -324,9 +336,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             if (x > mWidth - mTextPaint.measureText(text)) {
                 x = mWidth - mTextPaint.measureText(text);
             }
-            Paint.FontMetrics fm = mTextPaint.getFontMetrics();
-            float textHeight = fm.descent - fm.ascent;
-            float baseLine = (textHeight - fm.bottom - fm.top) / 2;
+
             //下方时间
             canvas.drawRect(x, mHeight-baseLine+textHeight,x+mTextPaint.measureText(text),mHeight +baseLine,mBackgroundPaint);
             canvas.drawText(text, x, mHeight+baseLine, mTextPaint);
@@ -344,40 +354,6 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             drawValue(canvas, selectedIndex == -1 ? mPoints.size() - 1 : selectedIndex);
         }
         drawText(canvas);
-//        //画指示线
-//        if (isLongPress) {
-//            IMinuteLine point = mPoints.get(selectedIndex);
-//            float x=getX(selectedIndex);
-//            canvas.drawLine(x, 0, x, mHeight, mTextPaint);
-//            canvas.drawLine(0, getY(point.getPrice()), mWidth, getY(point.getPrice()), mTextPaint);
-//            //画指示线的时间
-//            String text = DateUtil.shortTimeFormat.format(point.getDate());
-//            x = x - mTextPaint.measureText(text) / 2;
-//            if (x < 0) {
-//                x = 0;
-//            }
-//            if (x > mWidth - mTextPaint.measureText(text)) {
-//                x = mWidth - mTextPaint.measureText(text);
-//            }
-//            Paint.FontMetrics fm = mTextPaint.getFontMetrics();
-//            float textHeight = fm.descent - fm.ascent;
-//            float baseLine = (textHeight - fm.bottom - fm.top) / 2;
-//            //下方时间
-//            canvas.drawRect(x, mHeight-baseLine+textHeight,x+mTextPaint.measureText(text),mHeight +baseLine,mBackgroundPaint);
-//            canvas.drawText(text, x, mHeight+baseLine, mTextPaint);
-//
-//            float r = textHeight / 2;
-//            float y=getY(point.getPrice());
-//            //左方值
-//            text=floatToString(point.getPrice());
-//            canvas.drawRect(0, y - r, mTextPaint.measureText(text), y + r, mBackgroundPaint);
-//            canvas.drawText(text, 0, fixTextY(y), mTextPaint);
-//            //右方值
-//            text=floatToString((point.getPrice() - mValueStart)*100f / mValueStart)+"%";
-//            canvas.drawRect(mWidth-mTextPaint.measureText(text), y - r,mWidth, y + r, mBackgroundPaint);
-//            canvas.drawText(text, mWidth-mTextPaint.measureText(text), fixTextY(y), mTextPaint);
-//        }
-//        drawValue(canvas, isLongPress ? selectedIndex : mPoints.size() - 1);
     }
 
     /**
@@ -564,7 +540,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
      * 刷新最后一个点
      */
     public void refreshLastPoint(IMinuteLine point) {
-       changePoint(getItemSize()-1,point);
+        changePoint(getItemSize()-1,point);
     }
 
     /**
