@@ -16,7 +16,9 @@ import com.github.tifezh.kchartlib.utils.DateUtil;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -33,6 +35,7 @@ public class MinuteChartActivity extends AppCompatActivity {
     @BindView(R.id.btn_add)
     Button mBtnAdd;
     private List<MinuteLineEntity> mMinuteData;
+    private LinkedHashMap<String, String> mStringStringHashMap = new LinkedHashMap<>();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -80,11 +83,13 @@ public class MinuteChartActivity extends AppCompatActivity {
 
             List<MinuteLineEntity> minuteLineEntities = mMinuteData.subList(0, mMinuteData.size() - 50);
 
-            mMinuteChartView.initData(minuteLineEntities,
-                    startTime,
-                    endTime,
-                    firstEndTime,
-                    secondStartTime,
+            mStringStringHashMap.put("06:30", "23:59");
+//          mStringStringHashMap.put("10:00", "10:30");
+            mStringStringHashMap.put("12:00", "13:00");
+//          mStringStringHashMap.put("15:30", "16:00");
+            mStringStringHashMap.put("19:30", "20:00");
+
+            mMinuteChartView.initData(minuteLineEntities, mStringStringHashMap,
                     (float) (mMinuteData.get(0).price - 0.5 + Math.random()));
         } catch (ParseException e) {
             e.printStackTrace();

@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
@@ -19,10 +17,14 @@ import com.github.tifezh.kchartlib.chart.entity.IMinuteLine;
 import com.github.tifezh.kchartlib.chart.formatter.BigValueFormatter;
 import com.github.tifezh.kchartlib.utils.DateUtil;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * 分时图
@@ -59,19 +61,32 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
     private int selectedIndex = -1;
     private GestureDetectorCompat mDetector;
     private final List<IMinuteLine> mPoints = new ArrayList<>();
-    private Date mFirstStartTime;
-    private Date mFirstEndTime;
-    private Date mSecondStartTime;
-    private Date mSecondEndTime;
+//    private Date mFirstStartTime;
+//    private Date mFirstEndTime;
+//    private Date mSecondStartTime;
+//    private Date mSecondEndTime;
     private long mTotalTime;
     private float mPointWidth;
 
     private IValueFormatter mVolumeFormatter;
     private int mHeight;
+
     /**
-     * 休市时间 X 轴分割线
+     * {09:30, 12:00, 17:00, 20:00}
      */
-    private long mCenterPointValue;
+    private LinkedList<Date> mStartDateSpace;
+    /**
+     * {23:59, 13:00, 18:00, 21:00}
+     */
+    private LinkedList<Date> mEndDateSpace;
+    /**
+     * {(13:00-12:00), (18:00-17:00), (21:00-20:00)}
+     */
+    private LinkedList<Long> mBreakTimeSpace;
+    /**
+     * 休市分割线 X轴坐标
+     */
+    private LinkedList<Float> mBreakTimeX;
 
 
     public MinuteChartView(Context context) {
@@ -134,8 +149,12 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
                 }
                 break;
             case MotionEvent.ACTION_UP:
+//                isLongPress = false;
+//                invalidate();
                 break;
             case MotionEvent.ACTION_CANCEL:
+//                isLongPress = false;
+//                invalidate();
                 break;
         }
         return true;
@@ -157,21 +176,52 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
     private float getX(int position)
     {
         Date date=mPoints.get(position).getDate();
-        if(mSecondStartTime!=null&&date.getTime()>=mSecondStartTime.getTime())
-        {
-            return 1f* (date.getTime()-mSecondStartTime.getTime()+60000+
-                    mFirstEndTime.getTime()-mFirstStartTime.getTime()) /mTotalTime* (mWidth-mPointWidth)+mPointWidth/2f;
+        if(mEndDateSpace.size() > 1 && date.getTime() >= mEndDateSpace.get(1).getTime()) {
+            long time = date.getTime();
+            int count = 0;
+
+            for (int i = 1; i < mEndDateSpace.size(); i++) {
+                if (time >= mEndDateSpace.get(i).getTime()){
+                    count++;
+                }
+            }
+            time -= mStartDateSpace.get(0).getTime();
+
+            for (int j = 0; j < count; ++j) {
+                time -= mBreakTimeSpace.get(j);
+            }
+            return 1f* time /mTotalTime * (mWidth-mPointWidth)+mPointWidth/2f;
         }
         else {
-            return 1f*(date.getTime()-mFirstStartTime.getTime())/mTotalTime* (mWidth-mPointWidth)+mPointWidth/2f;
+            return 1f*(date.getTime()-mStartDateSpace.get(0).getTime())/mTotalTime* (mWidth-mPointWidth)+mPointWidth/2f;
         }
+    }
+    /**
+     * 根据索引获取x的值
+     */
+    private float getBreakTimeX(Date breakDate) {
+        long time = breakDate.getTime();
+        int count = 0;
+
+        for (int i = 1; i < mEndDateSpace.size(); i++) {
+            if (time >= mEndDateSpace.get(i).getTime()){
+                count++;
+            }
+        }
+
+        time -= mStartDateSpace.get(0).getTime();
+
+        for (int j = 0; j < count; ++j) {
+            time -= mBreakTimeSpace.get(j);
+        }
+        return 1f* time /mTotalTime* (mWidth-mPointWidth)+mPointWidth/2f;
     }
 
     /**
      * 获取最大能有多少个点
      */
     private long getMaxPointCount(){
-        return mTotalTime/ONE_MINUTE;
+       return mTotalTime/ONE_MINUTE;
     }
 
 
@@ -186,47 +236,44 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
 
     /**
      * @param data 数据源
-     * @param startTime       显示的开始时间
-     * @param endTime         显示的结束时间
+     * @param timeSpaceMap       显示的开始时间
      * @param yesClosePrice 昨日开盘价
      */
     public void initData(Collection<? extends IMinuteLine> data,
-                         Date startTime,
-                         Date endTime,
+                         LinkedHashMap<String, String> timeSpaceMap,
                          float yesClosePrice) {
-        initData(data,startTime,endTime,null,null,yesClosePrice);
-    }
+        try {
+        Set<String> startTimeSpace = timeSpaceMap.keySet();
+            mStartDateSpace = new LinkedList<>();
+            mEndDateSpace = new LinkedList<>();
+            mBreakTimeSpace = new LinkedList<>();
+            mBreakTimeX = new LinkedList<>();
 
-    /**
-     * @param data 数据源
-     * @param startTime       显示的开始时间
-     * @param endTime         显示的结束时间
-     * @param firstEndTime    休息开始时间 可空
-     * @param secondStartTime 休息结束时间 可空
-     * @param yesClosePrice 昨收价
-     */
-    public void initData(Collection<? extends IMinuteLine> data,
-                         @NonNull Date startTime,
-                         @NonNull Date endTime,
-                         @Nullable Date firstEndTime,
-                         @Nullable Date secondStartTime,
-                         float yesClosePrice){
-        this.mFirstStartTime = startTime;
-        this.mSecondEndTime = endTime;
-        if(mFirstStartTime.getTime()>=mSecondEndTime.getTime()) throw new IllegalStateException("开始时间不能大于结束时间");
-        mTotalTime=mSecondEndTime.getTime()-mFirstStartTime.getTime();
-        if(firstEndTime!=null&&secondStartTime!=null) {
-            this.mFirstEndTime = firstEndTime;
-            this.mSecondStartTime = secondStartTime;
-            if(!(mFirstStartTime.getTime()<mFirstEndTime.getTime()&&
-                    mFirstEndTime.getTime()<mSecondStartTime.getTime()&&
-                    mSecondStartTime.getTime()<mSecondEndTime.getTime()))
-            {
-                throw new IllegalStateException("时间区间有误");
+            for (String key : startTimeSpace) {
+                Date startDate = DateUtil.shortTimeFormat.parse(key);
+                Date endDate = DateUtil.shortTimeFormat.parse(timeSpaceMap.get(key));
+                if(startDate.getTime() > endDate.getTime()) {
+                    throw new IllegalStateException("开始时间不能大于结束时间");
+                }
+                mStartDateSpace.add(startDate);
+                mEndDateSpace.add(endDate);
+                if (mStartDateSpace.size() > 1){//23:59 - 06:00 - （21:00 - 20:00) - (18:00 - 17:00) ...
+                    long breakTime = endDate.getTime() - startDate.getTime() - 60000;
+                    mTotalTime -= breakTime;
+                    mBreakTimeSpace.add(breakTime);
+                }else {
+                    mTotalTime = endDate.getTime()-startDate.getTime(); //23:59 - 06:00
+                }
             }
-            mTotalTime-=mSecondStartTime.getTime()-mFirstEndTime.getTime()-60000;
-            mCenterPointValue = mFirstStartTime.getTime()-mFirstEndTime.getTime();
+            mPointWidth=(float) mWidth/getMaxPointCount();
+
+            for (Date endDate : mEndDateSpace) {
+                mBreakTimeX.add(getBreakTimeX(endDate));
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
+
         setValueStart(yesClosePrice);
         if (data != null) {
             mPoints.clear();
@@ -271,7 +318,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             mVolumeMax=1;
         }
 
-        //        mVolumeMax*=1.1f;
+//        mVolumeMax*=1.1f;
         //成交量的缩放值
         mVolumeScaleY = mVolumeHeight / mVolumeMax;
         mPointWidth=(float) mWidth/getMaxPointCount();
@@ -294,6 +341,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             for (int i = 0; i < mPoints.size(); i++) {
                 IMinuteLine curPoint=mPoints.get(i);
                 float curX=getX(i);
+
                 canvas.drawLine(lastX, getY(lastPoint.getPrice()), curX, getY(curPoint.getPrice()), mPricePaint);
                 canvas.drawLine(lastX, getY(lastPoint.getAvgPrice()),curX, getY(curPoint.getAvgPrice()), mAvgPaint);
                 //成交量
@@ -302,19 +350,23 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
                 lastPoint = curPoint;
                 lastX=curX;
             }
-
-            //绘制垂直中分线
-            int centerPoint = (int) (mCenterPointValue == 0 ? mTotalTime / 2 : mCenterPointValue);
-            float centerX = Math.abs(1f * centerPoint / mTotalTime * (mWidth - mPointWidth) + mPointWidth / 2f);
-            canvas.drawLine(centerX, 0, centerX, mKHeight, mGridPaint);
-            canvas.drawLine(centerX, mKHeight + mBottomPadding, centerX, mHeight, mGridPaint);
-
+            //绘制休市分割线
             Paint.FontMetrics fm = mTextPaint.getFontMetrics();
             float textHeight = fm.descent - fm.ascent;
             float baseLine = (textHeight - fm.bottom - fm.top) / 2;
-            if (mFirstEndTime != null){
-                String centerText = DateUtil.shortTimeFormat.format(mFirstEndTime) + "/" + DateUtil.shortTimeFormat.format(mSecondStartTime);
-                canvas.drawText(centerText, centerX - mTextPaint.measureText(centerText)/2, mHeight + baseLine, mTextPaint);
+
+            if (mEndDateSpace.size() > 1){
+                for (int i = 1; i < mEndDateSpace.size(); ++i) {
+                    canvas.drawLine(mBreakTimeX.get(i), 0, mBreakTimeX.get(i), mKHeight, mGridPaint);
+                    canvas.drawLine(mBreakTimeX.get(i), mKHeight + mBottomPadding, mBreakTimeX.get(i), mHeight, mGridPaint);
+
+                    String centerText = DateUtil.shortTimeFormat.format(mStartDateSpace.get(i)) + "/" + DateUtil.shortTimeFormat.format(mEndDateSpace.get(i));
+                    canvas.drawText(centerText, mBreakTimeX.get(i) - mTextPaint.measureText(centerText)/2, mHeight + baseLine, mTextPaint);
+                }
+            }else {//绘制垂直中分线
+                float centerX = Math.abs(1f * mTotalTime / 2 / mTotalTime * (mWidth - mPointWidth) + mPointWidth / 2f);
+                canvas.drawLine(centerX, 0, centerX, mKHeight, mGridPaint);
+                canvas.drawLine(centerX, mKHeight + mBottomPadding, centerX, mHeight, mGridPaint);
             }
 
             //画波动指示线
@@ -354,6 +406,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
             drawValue(canvas, selectedIndex == -1 ? mPoints.size() - 1 : selectedIndex);
         }
         drawText(canvas);
+
     }
 
     /**
@@ -449,9 +502,9 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
         }
         //画时间
         float y = mHeight +baseLine;
-        canvas.drawText(DateUtil.shortTimeFormat.format(mFirstStartTime), 0, y, mTextPaint);
-        canvas.drawText(DateUtil.shortTimeFormat.format(mSecondEndTime),
-                mWidth - mTextPaint.measureText(DateUtil.shortTimeFormat.format(mSecondEndTime)), y, mTextPaint);
+        canvas.drawText(DateUtil.shortTimeFormat.format(mStartDateSpace.get(0)), 0, y, mTextPaint);
+        canvas.drawText(DateUtil.shortTimeFormat.format(mEndDateSpace.get(0)),
+                mWidth - mTextPaint.measureText(DateUtil.shortTimeFormat.format(mEndDateSpace.get(0))), y, mTextPaint);
         //成交量
         canvas.drawText(mVolumeFormatter.format(mVolumeMax),0, mKHeight+mBottomPadding +baseLine,mTextPaint);
     }
@@ -540,7 +593,7 @@ public class MinuteChartView extends View implements GestureDetector.OnGestureLi
      * 刷新最后一个点
      */
     public void refreshLastPoint(IMinuteLine point) {
-        changePoint(getItemSize()-1,point);
+       changePoint(getItemSize()-1,point);
     }
 
     /**
